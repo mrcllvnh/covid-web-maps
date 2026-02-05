@@ -2,33 +2,23 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>COVID-19 Rates Choropleth</title>
+  <title>COVID-19 Cases Proportional Symbols</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-  <!-- My CSS -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
 <body>
   <div class="map-title">
-    <h2>COVID-19 Rates by U.S. County (2020)</h2>
-    <p>Choropleth map showing COVID-19 rates. Projection: Albers (ESRI:102003).</p>
+    <h2>COVID-19 Total Cases by U.S. County (2020)</h2>
+    <p>Proportional symbol map showing total COVID-19 cases. (Albers-style U.S. view)</p>
     <p><b>Data:</b> Course dataset. <b>Author:</b> Marcella Van Herry</p>
   </div>
 
   <div id="map"></div>
 
-  <!-- ✅ JS order matters -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/proj4@2.11.0/dist/proj4.js"></script>
-  <script src="https://unpkg.com/proj4leaflet@1.0.2/dist/proj4leaflet.js"></script>
-
   <script src="js/main.js"></script>
-  <script>
-    loadMap1();
-  </script>
+  <script>loadMap2();</script>
 </body>
 </html>
