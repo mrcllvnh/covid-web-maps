@@ -1,58 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>COVID-19 Rates Choropleth (2020)</title>
+  <title>COVID-19 Rates Choropleth</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-  <style>
-    html, body { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    h1 { margin: 14px 0 4px; text-align: center; font-size: 28px; }
-    .sub { text-align:center; font-size:14px; margin: 0 0 10px; color:#333; }
-    #map { width: 100%; height: 80vh; }
+  <!-- Proj4 + Proj4Leaflet (for Albers) -->
+  <script src="https://unpkg.com/proj4@2.11.0/dist/proj4.js"></script>
+  <script src="https://unpkg.com/proj4leaflet@1.0.2/src/proj4leaflet.js"></script>
 
-    .legend {
-      line-height: 18px;
-      color: #333;
-      background: rgba(255,255,255,0.95);
-      padding: 10px 12px;
-      border-radius: 8px;
-      box-shadow: 0 1px 6px rgba(0,0,0,0.25);
-      font-size: 12px;
-    }
-    .legend .title { font-weight: 700; margin-bottom: 6px; }
-    .legend i {
-      width: 14px;
-      height: 14px;
-      float: left;
-      margin-right: 8px;
-      opacity: 0.85;
-      border: 1px solid rgba(0,0,0,0.25);
-    }
-    .info {
-      padding: 10px 12px;
-      background: rgba(255,255,255,0.95);
-      border-radius: 8px;
-      box-shadow: 0 1px 6px rgba(0,0,0,0.25);
-      font-size: 12px;
-      color: #333;
-      max-width: 260px;
-    }
-    .info b { display:block; margin-bottom: 4px; }
-  </style>
+  <!-- My CSS -->
+  <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
-  <h1>COVID-19 Rates by County (2020)</h1>
-  <div class="sub">
-    Map type: Choropleth (county polygons). Hover to highlight, click for details.<br>
-    Data: US county-level COVID-19 rates (2020).
+  <div class="map-title">
+    <h2>COVID-19 Rates by U.S. County (2020)</h2>
+    <p>Choropleth map showing COVID-19 rates. Projection: Albers.</p>
+    <p><b>Data:</b> Course dataset. <b>Author:</b> Marcella Van Herry</p>
   </div>
 
   <div id="map"></div>
@@ -60,139 +28,11 @@
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+  <!-- My JS -->
+  <script src="js/main.js"></script>
+
   <script>
-    // 1) Create map (center + zoom for US)
-    const map = L.map("map", { preferCanvas: true }).setView([39.0, -98.0], 4);
-
-    // 2) Basemap (OSM)
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap contributors"
-    }).addTo(map);
-
-    // 3) Helper: colors (7 classes)
-    function getColor(d) {
-      return d > 50 ? "#800026" :
-             d > 40 ? "#BD0026" :
-             d > 30 ? "#E31A1C" :
-             d > 20 ? "#FC4E2A" :
-             d > 10 ? "#FD8D3C" :
-             d > 0  ? "#FEB24C" :
-                      "#FFEDA0";
-    }
-
-    // 4) Style & interactivity
-    function styleFeature(feature) {
-      const val = Number(feature.properties[RATE_FIELD] ?? 0);
-      return {
-        fillColor: getColor(val),
-        weight: 0.6,
-        opacity: 1,
-        color: "#666",
-        fillOpacity: 0.75
-      };
-    }
-
-    function highlightFeature(e) {
-      const layer = e.target;
-      layer.setStyle({ weight: 2, color: "#111", fillOpacity: 0.85 });
-      layer.bringToFront();
-      info.update(layer.feature.properties);
-    }
-
-    function resetHighlight(e) {
-      geojson.resetStyle(e.target);
-      info.update();
-    }
-
-    function zoomToFeature(e) {
-      map.fitBounds(e.target.getBounds(), { padding: [10, 10] });
-    }
-
-    function onEachFeature(feature, layer) {
-      layer.on({
-        mouseover: highlightFeature,
-        mouseout: resetHighlight,
-        click: zoomToFeature
-      });
-
-      const county = feature.properties.county ?? "Unknown county";
-      const state = feature.properties.state ?? "Unknown state";
-      const rateVal = feature.properties[RATE_FIELD];
-
-      layer.bindPopup(
-        `<b>${county}, ${state}</b><br>
-         Rate: ${rateVal ?? "N/A"}`
-      );
-    }
-
-    // 5) Info control (topright)
-    const info = L.control({ position: "topright" });
-    info.onAdd = function () {
-      this._div = L.DomUtil.create("div", "info");
-      this.update();
-      return this._div;
-    };
-    info.update = function (props) {
-      if (!props) {
-        this._div.innerHTML = "<b>Hover a county</b>See county name and rate here.";
-        return;
-      }
-      const county = props.county ?? "Unknown county";
-      const state = props.state ?? "Unknown state";
-      const rateVal = props[RATE_FIELD] ?? "N/A";
-      this._div.innerHTML = `<b>${county}, ${state}</b>Rate: ${rateVal}`;
-    };
-    info.addTo(map);
-
-    // 6) Legend (bottomright)
-    const legend = L.control({ position: "bottomright" });
-    legend.onAdd = function () {
-      const div = L.DomUtil.create("div", "legend");
-      const grades = [0, 10, 20, 30, 40, 50];
-
-      div.innerHTML = `<div class="title">Rate</div>`;
-      for (let i = 0; i < grades.length; i++) {
-        const from = grades[i];
-        const to = grades[i + 1];
-        div.innerHTML +=
-          `<div>
-             <i style="background:${getColor(from + 0.0001)}"></i>
-             ${from}${to ? "&ndash;" + to : "+"}
-           </div>`;
-      }
-      return div;
-    };
-    legend.addTo(map);
-
-    // 7) Load GeoJSON (IMPORTANT: path must match repo structure)
-    const GEOJSON_PATH = "assets/us-covid-2020-rates.geojson";
-    let RATE_FIELD = "rate";   // will auto-detect if different
-    let geojson;
-
-    fetch(GEOJSON_PATH)
-      .then(r => {
-        if (!r.ok) throw new Error("Failed to load " + GEOJSON_PATH);
-        return r.json();
-      })
-      .then(data => {
-        // Auto-detect rate field from first feature
-        const props = data.features?.[0]?.properties ?? {};
-        const candidates = ["rate", "rates", "Rate", "RATE", "case_rate", "cases_rate"];
-        RATE_FIELD = candidates.find(k => k in props) ?? Object.keys(props).find(k => k.toLowerCase().includes("rate")) ?? "rate";
-
-        geojson = L.geoJSON(data, {
-          style: styleFeature,
-          onEachFeature: onEachFeature
-        }).addTo(map);
-
-        // Fit to data bounds (nice zoom)
-        map.fitBounds(geojson.getBounds(), { padding: [10, 10] });
-      })
-      .catch(err => {
-        alert("ERROR: " + err.message + "\n\nCheck that the GeoJSON file path is correct and committed to GitHub.");
-        console.error(err);
-      });
+    loadMap1();  // call function from main.js
   </script>
 </body>
 </html>
