@@ -109,3 +109,73 @@ function loadMap1() {
     })
     .catch(err => console.error("GeoJSON load error:", err));
 }
+// ==============================
+// MAP 2: Proportional Symbols
+// ==============================
+function loadMap2() {
+
+  proj4.defs("ESRI:102003",
+    "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 " +
+    "+x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
+  );
+
+  var crs = new L.Proj.CRS(
+    "ESRI:102003",
+    proj4.defs("ESRI:102003"),
+    { resolutions: [8192,4096,2048,1024,512,256,128,64,32,16,8,4,2,1] }
+  );
+
+  var map = L.map("map", {
+    crs: crs,
+    center: [39, -96],
+    zoom: 4
+  });
+
+  // Load points
+  fetch("assets/us-covid-2020-counts.geojson")
+    .then(res => res.json())
+    .then(data => {
+
+      function getRadius(cases) {
+        return Math.sqrt(cases) * 0.15;
+      }
+
+      L.Proj.geoJson(data, {
+        pointToLayer: function (feature, latlng) {
+          return L.circleMarker(latlng, {
+            radius: getRadius(feature.properties.cases),
+            fillColor: "#800026",
+            color: "#222",
+            weight: 0.5,
+            opacity: 1,
+            fillOpacity: 0.6
+          });
+        },
+        onEachFeature: function (feature, layer) {
+          layer.bindPopup(
+            "<b>" + feature.properties.county + ", " + feature.properties.state + "</b><br>" +
+            "Cases: " + feature.properties.cases + "<br>" +
+            "Deaths: " + feature.properties.deaths
+          );
+        }
+      }).addTo(map);
+
+      // Legend
+      var legend = L.control({position: 'bottomright'});
+      legend.onAdd = function () {
+        var div = L.DomUtil.create('div', 'legend');
+        div.innerHTML += "<b>Cases</b><br>";
+
+        var grades = [1000, 5000, 20000, 50000];
+        grades.forEach(g => {
+          div.innerHTML +=
+            '<svg width="30" height="30">' +
+            '<circle cx="15" cy="15" r="' + getRadius(g) + '" fill="#800026" opacity="0.6" />' +
+            '</svg> ' + g + '<br>';
+        });
+        return div;
+      };
+      legend.addTo(map);
+
+    });
+}
