@@ -5,15 +5,9 @@
   <title>COVID-19 Rates Choropleth</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet -->
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-  <!-- Proj4 + Proj4Leaflet (for Albers) -->
-  <script src="https://unpkg.com/proj4@2.11.0/dist/proj4.js"></script>
-  <script src="https://unpkg.com/proj4leaflet@1.0.2/src/proj4leaflet.js"></script>
-
-  <!-- My CSS -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 
 <body>
@@ -25,14 +19,12 @@
 
   <div id="map"></div>
 
-  <!-- Leaflet JS -->
+  <!-- ✅ JS order matters -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/proj4@2.11.0/dist/proj4.js"></script>
+  <script src="https://unpkg.com/proj4leaflet@1.0.2/dist/proj4leaflet.js"></script>
 
-  <!-- My JS -->
   <script src="js/main.js"></script>
-
-  <script>
-    loadMap1();  // call function from main.js
-  </script>
+  <script>loadMap1();</script>
 </body>
 </html>
