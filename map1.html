@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>COVID-19 Rates Choropleth</title>
+  <title>COVID-19 Choropleth (2020)</title>
 
   <!-- Leaflet CSS -->
   <link
@@ -10,58 +10,139 @@
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
 
-  <!-- Your CSS -->
-  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; }
+    h2 { margin: 12px 0; font-family: Arial, sans-serif; }
+    #map { height: 88vh; width: 100%; }
+
+    .legend {
+      background: white;
+      padding: 10px;
+      border-radius: 6px;
+      line-height: 18px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      font-size: 12px;
+      font-family: Arial, sans-serif;
+    }
+    .legend i {
+      width: 14px;
+      height: 14px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.85;
+    }
+    .info {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 12px 12px 12px;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      color: #333;
+    }
+  </style>
 </head>
 
 <body>
-  <h2 style="text-align:center;">COVID-19 Rates by County (2020)</h2>
+  <h2 style="text-align:center;">COVID-19 Cases by County (2020)</h2>
+
+  <div class="info">
+    <b>Map type:</b> Choropleth (county polygons). Click a county for details. Hover to highlight.
+    <br>
+    <b>Data:</b> US county-level COVID-19 counts (2020).
+  </div>
+
   <div id="map"></div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // create map
+    // 1) Create map
     const map = L.map("map").setView([37.8, -96], 4);
 
-    // basemap
+    // 2) Basemap
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap contributors"
     }).addTo(map);
 
-    // field name for rates (we will verify this next)
-    const RATE_FIELD = "rate";
+    // 3) Field to map (this exists in your counts geojson)
+    const FIELD = "cases";
 
-    // load geojson
-    fetch("assets/us-covid-2020-rates.geojson")
-      .then(response => response.json())
+    // 4) Color function (bins for cases)
+    function getColor(d) {
+      d = Number(d);
+      return d > 50000 ? "#800026" :
+             d > 20000 ? "#BD0026" :
+             d > 10000 ? "#E31A1C" :
+             d > 5000  ? "#FC4E2A" :
+             d > 1000  ? "#FD8D3C" :
+             d > 0     ? "#FEB24C" :
+                         "#FFEDA0";
+    }
+
+    // 5) Style
+    function style(feature) {
+      return {
+        fillColor: getColor(feature.properties[FIELD]),
+        weight: 0.3,
+        opacity: 1,
+        color: "white",
+        fillOpacity: 0.75
+      };
+    }
+
+    let geojsonLayer;
+
+    // 6) Load polygon geojson (IMPORTANT: use counts.geojson)
+    fetch("assets/us-covid-2020-counts.geojson")
+      .then(r => r.json())
       .then(data => {
-        L.geoJSON(data, {
-          style: feature => ({
-            fillColor: getColor(feature.properties[RATE_FIELD]),
-            weight: 0.5,
-            color: "#555",
-            fillOpacity: 0.7
-          }),
+
+        geojsonLayer = L.geoJSON(data, {
+          style: style,
           onEachFeature: (feature, layer) => {
+            const p = feature.properties;
+
+            // popup (click)
             layer.bindPopup(
-              `<strong>${feature.properties.county}, ${feature.properties.state}</strong><br>
-               Rate: ${feature.properties[RATE_FIELD]}`
+              `<b>${p.county}, ${p.state}</b><br>
+               Cases: ${p.cases}<br>
+               Deaths: ${p.deaths}`
             );
+
+            // hover highlight
+            layer.on({
+              mouseover: (e) => {
+                e.target.setStyle({ weight: 2, color: "#000" });
+              },
+              mouseout: (e) => {
+                geojsonLayer.resetStyle(e.target);
+              }
+            });
           }
         }).addTo(map);
-      });
 
-    function getColor(d) {
-      return d > 50 ? "#800026" :
-             d > 40 ? "#BD0026" :
-             d > 30 ? "#E31A1C" :
-             d > 20 ? "#FC4E2A" :
-             d > 10 ? "#FD8D3C" :
-             d > 0  ? "#FEB24C" :
-                      "#FFEDA0";
-    }
+      })
+      .catch(err => console.error("GeoJSON fetch error:", err));
+
+    // 7) Legend
+    const legend = L.control({ position: "bottomright" });
+
+    legend.onAdd = function () {
+      const div = L.DomUtil.create("div", "legend");
+      const grades = [0, 1000, 5000, 10000, 20000, 50000];
+
+      div.innerHTML = "<b>Cases</b><br>";
+      for (let i = 0; i < grades.length; i++) {
+        const from = grades[i];
+        const to = grades[i + 1];
+        div.innerHTML +=
+          `<i style="background:${getColor(from + 1)}"></i> ${from}${to ? "&ndash;" + to : "+"}<br>`;
+      }
+      return div;
+    };
+
+    legend.addTo(map);
   </script>
 </body>
 </html>
