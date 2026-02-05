@@ -1,1 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>COVID-19 Rates Choropleth</title>
 
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <!-- Your CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+  <h2 style="text-align:center;">COVID-19 Rates by County (2020)</h2>
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // create map
+    const map = L.map("map").setView([37.8, -96], 4);
+
+    // basemap
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    // field name for rates (we will verify this next)
+    const RATE_FIELD = "rate";
+
+    // load geojson
+    fetch("assets/us-covid-2020-rates.geojson")
+      .then(response => response.json())
+      .then(data => {
+        L.geoJSON(data, {
+          style: feature => ({
+            fillColor: getColor(feature.properties[RATE_FIELD]),
+            weight: 0.5,
+            color: "#555",
+            fillOpacity: 0.7
+          }),
+          onEachFeature: (feature, layer) => {
+            layer.bindPopup(
+              `<strong>${feature.properties.county}, ${feature.properties.state}</strong><br>
+               Rate: ${feature.properties[RATE_FIELD]}`
+            );
+          }
+        }).addTo(map);
+      });
+
+    function getColor(d) {
+      return d > 50 ? "#800026" :
+             d > 40 ? "#BD0026" :
+             d > 30 ? "#E31A1C" :
+             d > 20 ? "#FC4E2A" :
+             d > 10 ? "#FD8D3C" :
+             d > 0  ? "#FEB24C" :
+                      "#FFEDA0";
+    }
+  </script>
+</body>
+</html>
