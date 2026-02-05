@@ -1,33 +1,15 @@
 // =======================
-// Shared: Albers CRS
-// =======================
-function makeAlbersCRS() {
-  // ESRI:102003 (NAD83 / Conus Albers)
-  proj4.defs(
-    "ESRI:102003",
-    "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 " +
-    "+x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
-  );
-
-  return new L.Proj.CRS(
-    "ESRI:102003",
-    proj4.defs("ESRI:102003"),
-    {
-      resolutions: [8192,4096,2048,1024,512,256,128,64,32,16,8,4,2,1]
-    }
-  );
-}
-
-// =======================
 // MAP 1: Choropleth Rates
 // =======================
 function loadMap1() {
-  var crs = makeAlbersCRS();
+  var map = L.map("map").setView([39, -96], 4);
 
-  // IMPORTANT: don't set center/zoom for projected CRS — use fitBounds after data loads
-  var map = L.map("map", { crs: crs });
+  // basemap (works in Leaflet default CRS)
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 10,
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(map);
 
-  // Color scale
   function getColor(d) {
     return d > 80 ? "#084081" :
            d > 60 ? "#0868ac" :
@@ -47,7 +29,7 @@ function loadMap1() {
     };
   }
 
-  var geojson; // will hold layer for resetStyle()
+  var geojson;
 
   function highlightFeature(e) {
     var layer = e.target;
@@ -78,20 +60,16 @@ function loadMap1() {
   }
 
   fetch("assets/us-covid-2020-rates.geojson")
-    .then(r => {
-      if (!r.ok) throw new Error("Could not load rates GeoJSON (check filename/path).");
-      return r.json();
-    })
+    .then(r => r.json())
     .then(data => {
-      geojson = L.Proj.geoJson(data, {
+      geojson = L.geoJSON(data, {
         style: style,
         onEachFeature: onEachFeature
       }).addTo(map);
 
-      // ✅ This is what makes projected CRS render correctly
       map.fitBounds(geojson.getBounds());
 
-      // Legend
+      // legend
       var legend = L.control({ position: "bottomright" });
       legend.onAdd = function () {
         var div = L.DomUtil.create("div", "legend"),
@@ -106,35 +84,30 @@ function loadMap1() {
         return div;
       };
       legend.addTo(map);
-    })
-    .catch(err => {
-      console.error(err);
-      alert(err.message);
     });
 }
 
-// ==============================
-// MAP 2: Proportional Symbols
-// ==============================
-function loadMap2() {
-  var crs = makeAlbersCRS();
 
-  // IMPORTANT: don't set center/zoom for projected CRS — use fitBounds after data loads
-  var map = L.map("map", { crs: crs });
+// ==================================
+// MAP 2: Proportional Symbols (Cases)
+// ==================================
+function loadMap2() {
+  var map = L.map("map").setView([39, -96], 4);
+
+  // basemap
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 10,
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(map);
+
+  function getRadius(cases) {
+    return Math.sqrt(Number(cases)) * 0.15;
+  }
 
   fetch("assets/us-covid-2020-counts.geojson")
-    .then(r => {
-      if (!r.ok) throw new Error("Could not load counts GeoJSON (check filename/path).");
-      return r.json();
-    })
+    .then(r => r.json())
     .then(data => {
-
-      function getRadius(cases) {
-        // sqrt scaling so big counties don’t dominate
-        return Math.sqrt(Number(cases)) * 0.15;
-      }
-
-      var pointsLayer = L.Proj.geoJson(data, {
+      var layer = L.geoJSON(data, {
         pointToLayer: function (feature, latlng) {
           return L.circleMarker(latlng, {
             radius: getRadius(feature.properties.cases),
@@ -145,17 +118,8 @@ function loadMap2() {
             fillOpacity: 0.6
           });
         },
-        onEachFeature: function (feature, layer) {
-          layer.on({
-            mouseover: function () {
-              layer.setStyle({ fillOpacity: 0.85 });
-            },
-            mouseout: function () {
-              layer.setStyle({ fillOpacity: 0.6 });
-            }
-          });
-
-          layer.bindPopup(
+        onEachFeature: function (feature, lyr) {
+          lyr.bindPopup(
             "<b>" + feature.properties.county + ", " + feature.properties.state + "</b><br>" +
             "Cases: " + feature.properties.cases + "<br>" +
             "Deaths: " + feature.properties.deaths
@@ -163,15 +127,13 @@ function loadMap2() {
         }
       }).addTo(map);
 
-      // ✅ This makes the projected CRS view correct
-      map.fitBounds(pointsLayer.getBounds());
+      map.fitBounds(layer.getBounds());
 
-      // Legend (example circles)
+      // legend
       var legend = L.control({ position: "bottomright" });
       legend.onAdd = function () {
         var div = L.DomUtil.create("div", "legend");
         div.innerHTML += "<b>Cases</b><br>";
-
         var grades = [1000, 5000, 20000, 50000];
         grades.forEach(g => {
           div.innerHTML +=
@@ -180,13 +142,8 @@ function loadMap2() {
             '</svg>' +
             g.toLocaleString() + "<br>";
         });
-
         return div;
       };
       legend.addTo(map);
-    })
-    .catch(err => {
-      console.error(err);
-      alert(err.message);
     });
 }
