@@ -7,13 +7,15 @@
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- My CSS -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
 <body>
   <div class="map-title">
     <h2>COVID-19 Total Cases by U.S. County (2020)</h2>
-    <p>Proportional symbol map showing total COVID-19 cases. Projection: Albers.</p>
+    <p>Proportional symbol map showing total COVID-19 cases. Projection: Albers (ESRI:102003).</p>
     <p><b>Data:</b> Course dataset. <b>Author:</b> Marcella Van Herry</p>
   </div>
 
@@ -25,6 +27,8 @@
   <script src="https://unpkg.com/proj4leaflet@1.0.2/dist/proj4leaflet.js"></script>
 
   <script src="js/main.js"></script>
-  <script>loadMap2();</script>
+  <script>
+    loadMap2();
+  </script>
 </body>
 </html>
